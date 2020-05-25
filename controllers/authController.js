@@ -1,5 +1,7 @@
-const User = require('../models/user')
+const { User } = require('../models')
 
+const Sequelize = require('sequelize')
+const Op = Sequelize.Op
 
 const bcrypt = require('bcrypt')
 
@@ -41,28 +43,28 @@ module.exports = {
                 })
             }
 
-            User.findOne({
+            User.findOrCreate({
                 where: {
-                    email
+                    [Op.or]: [{username}, {email}]
+                },
+                defaults: {
+                    username, password, email, isAdmin: false
                 },
                 attributes: [
                     'id', 'email', 'username'
                 ]
             }).then(resultUser => {
-                if (resultUser) {
-                    return res.status(422).json({
-                        error: true,
-                        msg: 'User already exist !',
-                    })
-                } else {
+                if (resultUser[1]) {
                     return res.status(201).json({
                         msg: 'Nouvel utilisateur créé !',
-                        username,
+                        user: resultUser[0]
                     })
-
-                    // Hash password
-
-                    // User.create()
+                } else {
+                    return res.status(422).json({
+                        error: true,
+                        msg: 'User with email or username already exist !',
+                        user: resultUser[0]
+                    })
                 }
             })
         }
